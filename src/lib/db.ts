@@ -57,6 +57,20 @@ function getPrismaClient() {
   return extendedClient;
 }
 
-export const db = globalThis.prisma || getPrismaClient();
+function getDbInstance(): ReturnType<typeof getPrismaClient> {
+  if (!globalThis.prisma) {
+    globalThis.prisma = getPrismaClient();
+  }
+  return globalThis.prisma;
+}
 
-if (process.env.NODE_ENV !== "production") globalThis.prisma = db;
+export const db = new Proxy({} as ReturnType<typeof getPrismaClient>, {
+  get(_target, prop) {
+    const instance = getDbInstance() as any;
+    const value = instance[prop];
+    if (typeof value === "function") {
+      return value.bind(instance);
+    }
+    return value;
+  },
+});

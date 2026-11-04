@@ -25,8 +25,8 @@ const invoiceSchema = z.object({
   lines: z.array(
     z.object({
       itemId: z.string(),
-      quantity: z.number().min(0.01),
-      rate: z.number().min(0),
+      quantity: z.number(),
+      rate: z.number(),
       discountAmount: z.number().default(0),
       taxRateId: z.string(),
       godownId: z.string(),
@@ -266,8 +266,12 @@ export async function POST(req: Request) {
 
   } catch (error: any) {
     console.error("Invoice save error:", error)
+    let errorMessage = error.message || "Failed to save invoice"
+    if (error instanceof z.ZodError) {
+      errorMessage = error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ')
+    }
     return NextResponse.json(
-      { error: error.message || "Failed to save invoice" },
+      { error: errorMessage },
       { status: 400 }
     )
   }
